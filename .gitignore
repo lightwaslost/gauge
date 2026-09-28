@@ -1,0 +1,9 @@
+.build/
+build/
+*.dmg
+.swiftpm/
+.DS_Store
+
+# Local agent tooling — not part of the project
+.claude/
+skills-lock.json

@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauge — Activity monitor for Mac</title>
+  <meta name="description" content="Gauge is a native macOS activity monitor. Spot the app behind a slowdown, save the moment, and keep 30 days of history on your own Mac.">
+  <link rel="icon" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Repo and download links live in CONFIG at the bottom of this file. */
+    :root {
+      --bg: #fbfbfa;
+      --surface: #ffffff;
+      --surface-2: #f3f3f1;
+      --ink: #1d1d1f;
+      --muted: #6b6b70;
+      --line: #e3e3e0;
+      --accent: #2f6ff0;
+      --accent-ink: #ffffff;
+      --teal: #1fb5ad;
+      --shadow: 0 1px 2px rgba(0,0,0,.04), 0 12px 40px rgba(0,0,0,.08);
+      --radius: 14px;
+      --ease: cubic-bezier(.2, .8, .2, 1);
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111214;
+        --surface: #1a1b1e;
+        --surface-2: #222328;
+        --ink: #f2f2f3;
+        --muted: #9a9aa2;
+        --line: #2c2d32;
+        --accent: #5b8ff9;
+        --shadow: 0 1px 2px rgba(0,0,0,.3), 0 16px 48px rgba(0,0,0,.45);
+        color-scheme: dark;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+    h1, h2, h3 { letter-spacing: -.022em; line-height: 1.12; margin: 0; }
+    h2 { font-size: clamp(28px, 4vw, 40px); }
+    .lede { color: var(--muted); font-size: 18px; max-width: 560px; }
+    section { padding: 96px 0; }
+
+    /* Nav */
+    nav { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(1.6) blur(14px); background: color-mix(in srgb, var(--bg) 78%, transparent); border-bottom: 1px solid var(--line); }
+    nav .wrap { display: flex; align-items: center; gap: 28px; height: 60px; }
+    .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; text-decoration: none; }
+    .brand img { width: 28px; height: 28px; }
+    nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; }
+    nav .links a { text-decoration: none; color: var(--muted); }
+    nav .links a:hover { color: var(--ink); }
+
+    .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 11px 20px; font-weight: 600; font-size: 15px; text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: transform .2s var(--ease), background .2s; font-family: inherit; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: var(--accent-ink); }
+    .btn-primary:hover { background: color-mix(in srgb, var(--accent) 88%, #000); }
+    .btn-ghost { border-color: var(--line); background: var(--surface); }
+    .btn-small { padding: 7px 14px; font-size: 13px; }
+
+    /* Hero */
+    .hero { padding: 88px 0 40px; text-align: center; }
+    .hero h1 { font-size: clamp(40px, 7vw, 68px); max-width: 780px; margin: 0 auto 20px; }
+    .hero h1 span { background: linear-gradient(90deg, var(--accent), var(--teal)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero .lede { margin: 0 auto 32px; }
+    .hero .ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .chips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 22px; font-size: 13px; color: var(--muted); }
+    .chips span { border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; background: var(--surface); }
+
+    /* App mockup */
+    .mock { margin: 56px auto 0; max-width: 980px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); border: 1px solid var(--line); overflow: hidden; display: grid; grid-template-columns: 190px 1fr; text-align: left; font-size: 13px; }
+    .mock-side { background: var(--surface-2); padding: 14px 10px; border-right: 1px solid var(--line); }
+    .dots { display: flex; gap: 7px; padding: 2px 6px 16px; }
+    .dots i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+    .dots i:nth-child(2) { background: #febc2e; } .dots i:nth-child(3) { background: #28c840; }
+    .mock-side div.item { padding: 7px 10px; border-radius: 7px; color: var(--muted); }
+    .mock-side div.item.on { background: var(--accent); color: #fff; }
+    .mock-main { padding: 18px 20px 20px; }
+    .mock-main h4 { margin: 0 0 14px; font-size: 16px; }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .card { background: var(--surface-2); border-radius: 10px; padding: 11px 12px 6px; }
+    .card small { color: var(--muted); }
+    .card b { display: block; font-size: 19px; margin: 2px 0 4px; font-variant-numeric: tabular-nums; }
+    .card svg { width: 100%; height: 40px; display: block; }
+    .rows { margin-top: 14px; background: var(--surface-2); border-radius: 10px; padding: 2px 12px; }
+    .row { display: grid; grid-template-columns: 22px 1fr 60px 76px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+    .row:first-child { border-top: 0; }
+    .row .ic { width: 20px; height: 20px; border-radius: 5px; }
+    .row .n small { display: block; color: var(--muted); font-size: 11px; }
+    .row .r { text-align: right; } .row .m { text-align: right; color: var(--muted); }
+
+    /* Steps */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 44px; }
+    .step { padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .step .num { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); margin-bottom: 16px; }
+    .step h3 { font-size: 18px; margin-bottom: 6px; }
+    .step p { color: var(--muted); margin: 0; }
+
+    /* Features */
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin-top: 44px; }
+    .feature { background: var(--surface); padding: 28px 26px; }
+    .feature svg { width: 26px; height: 26px; color: var(--accent); margin-bottom: 14px; }
+    .feature h3 { font-size: 17px; margin-bottom: 6px; }
+    .feature p { color: var(--muted); margin: 0; font-size: 15px; }
+
+    /* Privacy */
+    .privacy { background: var(--ink); color: var(--bg); border-radius: 24px; padding: 64px 56px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; align-items: center; }
+    .privacy .eyebrow { color: var(--teal); }
+    .privacy p { opacity: .72; font-size: 17px; }
+    .privacy ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+    .privacy li { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 12px; background: color-mix(in srgb, var(--bg) 8%, transparent); }
+    .privacy li b { display: block; }
+    .privacy li span { opacity: .7; font-size: 14px; }
+    .check { flex: none; width: 20px; height: 20px; color: var(--teal); margin-top: 2px; }
+
+    /* Get it / open source */
+    .get { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+    .get-card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 32px; box-shadow: var(--shadow); }
+    .get-card .top { display: flex; justify-content: space-between; align-items: baseline; }
+    .badge { font-size: 12px; font-weight: 600; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); padding: 3px 10px; border-radius: 999px; }
+    .amount { font-size: 52px; font-weight: 700; letter-spacing: -.03em; margin: 18px 0 2px; font-variant-numeric: tabular-nums; }
+    .amount small { font-size: 16px; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+    .note { color: var(--muted); font-size: 14px; }
+    .get-card .btn { width: 100%; justify-content: center; }
+    .get-card .btn + .btn { margin-top: 10px; }
+    .rule { border-top: 1px solid var(--line); margin: 22px 0; }
+    pre.code { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; overflow-x: auto; font-size: 13px; line-height: 1.7; margin: 0; }
+    pre.code .c { color: var(--muted); }
+    .oss-points { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 12px; }
+    .oss-points li { display: flex; gap: 10px; align-items: flex-start; color: var(--muted); }
+    .oss-points .check { color: var(--accent); }
+
+    /* FAQ */
+    .faq { max-width: 760px; margin: 40px auto 0; }
+    details { border-bottom: 1px solid var(--line); padding: 18px 0; }
+    summary { cursor: pointer; font-weight: 600; font-size: 17px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; color: var(--muted); font-weight: 400; transition: transform .2s var(--ease); }
+    details[open] summary::after { transform: rotate(45deg); }
+    details p { color: var(--muted); margin: 10px 0 0; }
+
+    /* Footer */
+    .final { text-align: center; }
+    .final img { width: 84px; height: 84px; margin-bottom: 18px; }
+    .final .lede { margin: 12px auto 28px; }
+    footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--muted); font-size: 14px; }
+    footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+    .reveal { opacity: 0; transform: translateY(14px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+    .reveal.in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } }
+
+    @media (max-width: 860px) {
+      section { padding: 72px 0; }
+      .steps, .features { grid-template-columns: 1fr; }
+      .privacy, .get { grid-template-columns: 1fr; }
+      .privacy { padding: 40px 24px; border-radius: 18px; }
+      .mock { grid-template-columns: 1fr; }
+      .mock-side { display: none; }
+      .cards { grid-template-columns: repeat(2, 1fr); }
+      nav .links a:not(.btn) { display: none; }
+      .wrap { padding: 0 16px; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="wrap">
+      <a class="brand" href="#"><img src="icon.png" alt="">Gauge</a>
+      <div class="links">
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#get">Get it</a>
+        <a href="#faq">FAQ</a>
+        <a class="btn btn-primary btn-small" data-download href="#">Download</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Activity monitor for macOS</p>
+      <h1>See what your Mac is <span>actually doing.</span></h1>
+      <p class="lede">Fans spinning up? Battery dropping? Gauge shows the app responsible in seconds, and remembers the last 30 days so you can spot the pattern.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" data-download href="#">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1a.75.75 0 0 1 .75.75v7.19l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 0 1 1.06-1.06l2.22 2.22V1.75A.75.75 0 0 1 8 1ZM2.75 12.5a.75.75 0 0 0 0 1.5h10.5a.75.75 0 0 0 0-1.5H2.75Z"/></svg>
+          Download for Mac
+        </a>
+        <a class="btn btn-ghost" href="#features">See what it does</a>
+      </div>
+      <div class="chips"><span>Free &amp; open source</span><span>Built in SwiftUI</span><span>macOS 26 or later</span><span>No account, no cloud</span></div>
+
+      <div class="mock reveal" aria-label="Gauge app preview">
+        <div class="mock-side">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="item on">Overview</div>
+          <div class="item">Apps</div>
+          <div class="item">Projects</div>
+          <div class="item">History</div>
+          <div class="item">Moments</div>
+        </div>
+        <div class="mock-main">
+          <h4>Overview</h4>
+          <div class="cards" id="cards"></div>
+          <div class="rows">
+            <div class="row"><div class="ic" style="background:linear-gradient(135deg,#ff8a3d,#ff3d6e)"></div><div class="n">Video Editor<small>6 processes</small></div><div class="r">142%</div><div class="m">3.1 GB</div></div>
+            <div class="row"><div class="ic" style="background:linear-gradient(135deg,#4f8cff,#7b5bff)"></div><div class="n">Web Browser<small>38 processes</small></div><div class="r">37%</div><div class="m">5.4 GB</div></div>
+            <div class="row"><div class="ic" style="background:linear-gradient(135deg,#1fb5ad,#4fd18b)"></div><div class="n">node · my-app<small>dev server on :5173</small></div><div class="r">12%</div><div class="m">410 MB</div></div>
+            <div class="row"><div class="ic" style="background:linear-gradient(135deg,#8e8e93,#b7b7bc)"></div><div class="n">Photo Sync<small>2 processes</small></div><div class="r">4.8%</div><div class="m">220 MB</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section id="how">
+    <div class="wrap">
+      <p class="eyebrow">How it works</p>
+      <h2>Slowdown to answer in three steps.</h2>
+      <div class="steps">
+        <div class="step reveal"><div class="num">1</div><h3>Glance</h3><p>Live readings for every resource, right in the window or the menu bar.</p></div>
+        <div class="step reveal"><div class="num">2</div><h3>Pinpoint</h3><p>Helpers and background processes roll up under the app that started them, so the culprit is obvious.</p></div>
+        <div class="step reveal"><div class="num">3</div><h3>Remember</h3><p>Bookmark a spike with ⌘S, or scroll back through history to see when it keeps happening.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" style="padding-top:0">
+    <div class="wrap">
+      <p class="eyebrow">Features</p>
+      <h2>Small app, full picture.</h2>
+      <div class="features">
+        <div class="feature reveal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 17l5-6 4 3 6-8"/><path d="M3 21h18"/></svg>
+          <h3>Six resources, one window</h3><p>CPU, memory, network, disk, GPU and battery side by side, each with a live chart.</p>
+        </div>
+        <div class="feature reveal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+          <h3>Apps, not process soup</h3><p>Dozens of browser helpers become one row. Expand it when you want the detail.</p>
+        </div>
+        <div class="feature reveal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>
+          <h3>Save a moment</h3><p>One shortcut captures what every app was doing. Add a note and review it later.</p>
+        </div>
+        <div class="feature reveal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <h3>30 days of history</h3><p>A snapshot every minute, charted from the last hour to the last month, with the heaviest apps ranked.</p>
+        </div>
+        <div class="feature reveal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          <h3>Projects &amp; ports</h3><p>Dev servers, databases and scripts grouped by project folder, with their ports one click from the browser.</p>
+        </div>
+        <div class="feature reveal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <h3>Heads-up alerts</h3><p>Get a nudge when an app pins the CPU for minutes on end or quietly keeps eating memory.</p>
+        </div>
+        <div class="feature reveal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>
+          <h3>Where your disk went</h3><p>Folder-by-folder sizes, sorted into categories, so the 40 GB surprise is easy to find.</p>
+        </div>
+        <div class="feature reveal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          <h3>Battery health, too</h3><p>Cycle count, capacity, temperature and live wattage, alongside charge and time left.</p>
+        </div>
+        <div class="feature reveal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          <h3>Private by default</h3><p>Everything is recorded to a file on your Mac. Secrets in command lines are hidden on screen.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="privacy reveal">
+        <div>
+          <p class="eyebrow">Privacy</p>
+          <h2>Your activity never leaves your desk.</h2>
+          <p>What you run is personal. Gauge keeps its records in a local database you can open, clear or delete at any time.</p>
+        </div>
+        <ul>
+          <li><svg class="check" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.7-9.3-4 4a1 1 0 0 1-1.4 0l-2-2a1 1 0 1 1 1.4-1.4L9 10.6l3.3-3.3a1 1 0 0 1 1.4 1.4Z"/></svg><div><b>No telemetry</b><span>No analytics, no crash uploads.</span></div></li>
+          <li><svg class="check" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.7-9.3-4 4a1 1 0 0 1-1.4 0l-2-2a1 1 0 1 1 1.4-1.4L9 10.6l3.3-3.3a1 1 0 0 1 1.4 1.4Z"/></svg><div><b>No account</b><span>Download, open, done.</span></div></li>
+          <li><svg class="check" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.7-9.3-4 4a1 1 0 0 1-1.4 0l-2-2a1 1 0 1 1 1.4-1.4L9 10.6l3.3-3.3a1 1 0 0 1 1.4 1.4Z"/></svg><div><b>No background daemon</b><span>Quit the app and it stops, completely.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="get" style="padding-top:0">
+    <div class="wrap get">
+      <div>
+        <p class="eyebrow">Free and open source</p>
+        <h2>Free. Actually free.</h2>
+        <p class="lede">No price, no trial, no upsell, no account. Gauge is released under the MIT licence — read the code, change it, ship your own version.</p>
+        <ul class="oss-points">
+          <li><svg class="check" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.7-9.3-4 4a1 1 0 0 1-1.4 0l-2-2a1 1 0 1 1 1.4-1.4L9 10.6l3.3-3.3a1 1 0 0 1 1.4 1.4Z"/></svg><span>Every feature, for everyone. There is no paid tier holding anything back.</span></li>
+          <li><svg class="check" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.7-9.3-4 4a1 1 0 0 1-1.4 0l-2-2a1 1 0 1 1 1.4-1.4L9 10.6l3.3-3.3a1 1 0 0 1 1.4 1.4Z"/></svg><span>Auditable: the privacy promise is something you can check, not a claim on a page.</span></li>
+          <li><svg class="check" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.7-9.3-4 4a1 1 0 0 1-1.4 0l-2-2a1 1 0 1 1 1.4-1.4L9 10.6l3.3-3.3a1 1 0 0 1 1.4 1.4Z"/></svg><span>No dependencies, one Swift package. It builds in a few seconds.</span></li>
+        </ul>
+      </div>
+      <div class="get-card reveal">
+        <div class="top"><b>Gauge for Mac</b><span class="badge">MIT licence</span></div>
+        <div class="amount">Free <small>forever</small></div>
+        <div class="note">macOS 26 or later · universal build</div>
+        <div class="rule"></div>
+        <a class="btn btn-primary" data-download href="#">Download for Mac</a>
+        <a class="btn btn-ghost" data-repo href="#">View source on GitHub</a>
+        <div class="rule"></div>
+        <p class="note" style="margin:0 0 10px">Or build it yourself:</p>
+        <pre class="code"><span class="c"># needs Xcode 26 / Swift 6.2</span>
+git clone <span data-clone>…</span>
+cd gauge
+./scripts/build-app.sh</pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" style="padding-top:0">
+    <div class="wrap">
+      <p class="eyebrow" style="text-align:center">FAQ</p>
+      <h2 style="text-align:center">Good to know</h2>
+      <div class="faq">
+        <details><summary>How do I install it?</summary><p>Open the downloaded disk image and drag Gauge into your Applications folder. Launch it from there. You can turn on "Open at login" in Settings.</p></details>
+        <details><summary>Which Macs are supported?</summary><p>Any Mac running macOS 26 or later. GPU readings depend on what your hardware reports; if a reading isn't available, Gauge says so instead of guessing.</p></details>
+        <details><summary>How much history does it keep?</summary><p>One averaged snapshot per minute while Gauge is running, kept for 30 days. Nothing is recorded while your Mac is asleep or the app is quit.</p></details>
+        <details><summary>Does it slow my Mac down?</summary><p>Gauge samples every two seconds using the same system counters Activity Monitor reads. In the background it typically uses well under 1% of one CPU core.</p></details>
+        <details><summary>Why don't I see some system processes?</summary><p>macOS only lets an app read details for processes owned by your user account. Daemons that run as root aren't shown.</p></details>
+        <details><summary>Is it really free?</summary><p>Yes. Gauge is open source under the MIT licence — free to use for anything, including at work. There is no paid tier, no trial timer and nothing to unlock.</p></details>
+        <details><summary>Why does macOS warn me on first launch?</summary><p>Releases are ad-hoc signed rather than notarised with a paid Developer ID. Right-click the app and choose Open the first time, or build it from source yourself to skip the warning.</p></details>
+        <details><summary>Can I contribute?</summary><p>Please do — issues and pull requests are welcome on GitHub. The one hard rule is that Gauge never makes network requests, which is the whole point of it.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="final">
+    <div class="wrap">
+      <img src="icon.png" alt="">
+      <h2>Stop guessing what's slow.</h2>
+      <p class="lede">A native monitor that explains itself, and keeps its notes on your Mac.</p>
+      <a class="btn btn-primary" data-download href="#">Download for Mac</a>
+      <p class="note" style="margin-top:14px">macOS 26 or later · Free and open source</p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <span>© <span id="year"></span> Gauge · <a data-license href="#">MIT licence</a></span>
+      <span><a data-repo href="#">GitHub</a> · <a data-issues href="#">Report an issue</a></span>
+    </div>
+  </footer>
+
+  <script>
+    // ---- Config ----
+    const CONFIG = {
+      repo: 'https://github.com/lightwaslost/gauge',
+      // The latest release page. To self-host instead, drop build/Gauge.dmg
+      // next to this file and change this to 'Gauge.dmg'.
+      downloadURL: 'https://github.com/lightwaslost/gauge/releases/latest',
+    };
+
+    const $ = id => document.getElementById(id);
+    const setAll = (selector, href) => document.querySelectorAll(selector).forEach(a => a.href = href);
+
+    setAll('[data-download]', CONFIG.downloadURL);
+    setAll('[data-repo]', CONFIG.repo);
+    setAll('[data-issues]', CONFIG.repo + '/issues');
+    setAll('[data-license]', CONFIG.repo + '/blob/main/LICENSE');
+    document.querySelectorAll('[data-clone]').forEach(el => el.textContent = CONFIG.repo + '.git');
+    $('year').textContent = new Date().getFullYear();
+
+    // Live-looking metric cards in the mockup
+    const metrics = [
+      { label: 'CPU', color: '#2f6ff0', fmt: v => Math.round(v) + '%', base: 34, spread: 26 },
+      { label: 'Memory', color: '#8b5cf6', fmt: v => (v / 10).toFixed(1) + ' GB', base: 118, spread: 6 },
+      { label: 'Network', color: '#1fb5ad', fmt: v => '↓ ' + Math.round(v * 12) + ' KB/s', base: 30, spread: 28 },
+      { label: 'Disk', color: '#f59e0b', fmt: v => 'R ' + (v / 4).toFixed(1) + ' MB/s', base: 20, spread: 20 },
+      { label: 'GPU', color: '#ec4899', fmt: v => Math.round(v) + '%', base: 22, spread: 18 },
+      { label: 'Battery', color: '#22c55e', fmt: v => Math.round(v) + '%', base: 84, spread: 0 },
+    ];
+    const N = 40;
+    const cards = $('cards');
+    const series = metrics.map(m => Array.from({ length: N }, () => clampVal(m.base + (Math.random() - .5) * m.spread)));
+    function clampVal(v) { return Math.max(1, Math.min(99 * 2, v)); }
+    metrics.forEach((m, i) => {
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.innerHTML = `<small>${m.label}</small><b></b><svg viewBox="0 0 100 40" preserveAspectRatio="none"><path fill="${m.color}" fill-opacity=".16"/><path fill="none" stroke="${m.color}" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`;
+      cards.appendChild(el);
+      m.el = el;
+    });
+    function draw() {
+      metrics.forEach((m, i) => {
+        const s = series[i];
+        const max = Math.max(...s, m.label === 'CPU' || m.label === 'GPU' || m.label === 'Battery' ? 100 : 1) * 1.1;
+        const pts = s.map((v, j) => [(j / (N - 1)) * 100, 40 - (v / max) * 38]);
+        const line = pts.map((p, j) => (j ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+        const [area, stroke] = m.el.querySelectorAll('path');
+        stroke.setAttribute('d', line);
+        area.setAttribute('d', line + ' L100 40 L0 40 Z');
+        m.el.querySelector('b').textContent = m.fmt(s[N - 1]);
+      });
+    }
+    draw();
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduceMotion) {
+      setInterval(() => {
+        metrics.forEach((m, i) => {
+          const last = series[i][N - 1];
+          const next = m.spread ? clampVal(last + (m.base - last) * .25 + (Math.random() - .5) * m.spread * .7) : last;
+          series[i].push(next); series[i].shift();
+        });
+        draw();
+      }, 1200);
+    }
+
+    // Scroll reveal
+    const io = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .15 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  </script>
+</body>
+</html>

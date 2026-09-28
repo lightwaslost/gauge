@@ -1,0 +1,27 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: swift --version
+
+      - name: Build
+        run: swift build -c release
+
+      - name: Package the app
+        run: ./scripts/build-app.sh
+
+      - name: Self-test the samplers
+        # Prints every sampler's current readings, then exits. Timed out rather
+        # than trusted, since it still spins up an NSApplication.
+        timeout-minutes: 5
+        run: ./build/Gauge.app/Contents/MacOS/Gauge --self-test
